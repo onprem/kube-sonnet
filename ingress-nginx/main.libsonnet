@@ -10,6 +10,7 @@ local defaults = {
   controllerClass: 'k8s.io/ingress-nginx',
   electionId: 'ingress-controller-leader',
   serviceAnnotations: {},
+  setDefaultIngress: false,
   namespace: error 'must provide namespace',
   version: error 'must provide version',
   images: {
@@ -588,6 +589,9 @@ function(params) {
     metadata: {
       name: ingnx.config.ingressClassName,
       labels: ingnx.config.commonControllerLabels,
+      annotations: if ingnx.config.setDefaultIngress then {
+        'ingressclass.kubernetes.io/is-default-class': 'true'
+       } else {},
     },
     spec: {
       controller: ingnx.config.controllerClass,
