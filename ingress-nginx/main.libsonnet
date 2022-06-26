@@ -45,7 +45,7 @@ local defaults = {
   podLabelSelector:: {
     [labelName]: defaults.commonControllerLabels[labelName]
     for labelName in std.objectFields(defaults.commonControllerLabels)
-    if !std.setMember(labelName, ['app.kubernetes.io/version', 'app.kubernetes.io/part-of'])
+    if !std.setMember(labelName, ['app.kubernetes.io/part-of', 'app.kubernetes.io/version'])
   },
 
   commonAdmWebhookLabels:: defaults.commonLabels + {
