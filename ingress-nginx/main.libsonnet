@@ -416,7 +416,7 @@ function(params) {
               ],
               imagePullPolicy: ingnx.config.imagePullPolicy,
               lifecycle: {
-                prestop: { exec: { command: ['/wait-shutdown'] }},
+                preStop: { exec: { command: ['/wait-shutdown'] }},
               },
               livenessProbe: {
                 failureThreshold: 5,
