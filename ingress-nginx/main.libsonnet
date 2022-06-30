@@ -11,6 +11,7 @@ local defaults = {
   electionId: 'ingress-controller-leader',
   serviceAnnotations: {},
   setDefaultIngress: false,
+  tcpServices: {},
   namespace: error 'must provide namespace',
   version: error 'must provide version',
   images: {
@@ -39,7 +40,7 @@ local defaults = {
     'app.kubernetes.io/part-of': 'ingress-nginx',
   },
 
-  commonControllerLabels:: defaults.commonLabels + {
+  commonControllerLabels:: defaults.commonLabels {
     'app.kubernetes.io/component': 'controller',
   },
 
@@ -49,7 +50,7 @@ local defaults = {
     if !std.setMember(labelName, ['app.kubernetes.io/part-of', 'app.kubernetes.io/version'])
   },
 
-  commonAdmWebhookLabels:: defaults.commonLabels + {
+  commonAdmWebhookLabels:: defaults.commonLabels {
     'app.kubernetes.io/component': 'admission-webhook',
   },
 };
@@ -314,6 +315,24 @@ function(params) {
     },
   },
 
+  tcpServicesConfigMap: {
+    apiVersion: 'v1',
+    kind: 'ConfigMap',
+    metadata: {
+      name: ingnx.config.controllerName + '-tcp-services',
+      namespace: ingnx.config.namespace,
+      labels: ingnx.config.commonControllerLabels,
+    },
+    data: {
+      [extPort]: '%s/%s:%d' % [
+        ingnx.config.tcpServices[extPort].namespace,
+        ingnx.config.tcpServices[extPort].name,
+        ingnx.config.tcpServices[extPort].port,
+      ]
+      for extPort in std.objectFields(ingnx.config.tcpServices)
+    },
+  },
+
   service: {
     apiVersion: 'v1',
     kind: 'Service',
@@ -336,6 +355,14 @@ function(params) {
         }
         for name in std.objectFields(ingnx.config.ports)
         if !std.setMember(name, ['webhook'])
+      ] + [
+        {
+          name: 'proxied-tcp-%s' % port,
+          port: std.parseInt(port),
+          targetPort: std.parseInt(port),
+          protocol: 'TCP',
+        },
+        for port in std.objectFields(ingnx.config.tcpServices)
       ],
       type: 'LoadBalancer',
     },
@@ -357,7 +384,7 @@ function(params) {
           name: 'https-webhook',
           port: 443,
           targetPort: 'webhook',
-        }
+        },
       ],
       type: 'ClusterIP',
     },
@@ -400,15 +427,16 @@ function(params) {
                 '--validating-webhook=:%d' % ingnx.config.ports.webhook,
                 '--validating-webhook-certificate=/usr/local/certificates/cert',
                 '--validating-webhook-key=/usr/local/certificates/key',
+                '--tcp-services-configmap=$(POD_NAMESPACE)/%s' % ingnx.tcpServicesConfigMap.metadata.name,
               ],
               env: [
                 {
                   name: 'POD_NAME',
-                  valueFrom: { fieldRef: { fieldPath: 'metadata.name' }},
+                  valueFrom: { fieldRef: { fieldPath: 'metadata.name' } },
                 },
                 {
                   name: 'POD_NAMESPACE',
-                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' }},
+                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' } },
                 },
                 {
                   name: 'LD_PRELOAD',
@@ -417,7 +445,7 @@ function(params) {
               ],
               imagePullPolicy: ingnx.config.imagePullPolicy,
               lifecycle: {
-                preStop: { exec: { command: ['/wait-shutdown'] }},
+                preStop: { exec: { command: ['/wait-shutdown'] } },
               },
               livenessProbe: {
                 failureThreshold: 5,
@@ -496,14 +524,14 @@ function(params) {
             {
               args: [
                 'create',
-                '--host=%(svc)s,%(svc)s.$(POD_NAMESPACE).svc' % {svc: ingnx.webhookService.metadata.name},
+                '--host=%(svc)s,%(svc)s.$(POD_NAMESPACE).svc' % { svc: ingnx.webhookService.metadata.name },
                 '--namespace=$(POD_NAMESPACE)',
                 '--secret-name=%s' % ingnx.config.admName,
               ],
               env: [
                 {
                   name: 'POD_NAMESPACE',
-                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' }},
+                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' } },
                 },
               ],
               image: ingnx.config.images.kubeWebhookCertgen,
@@ -557,7 +585,7 @@ function(params) {
               env: [
                 {
                   name: 'POD_NAMESPACE',
-                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' }},
+                  valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' } },
                 },
               ],
               image: ingnx.config.images.kubeWebhookCertgen,
@@ -590,8 +618,8 @@ function(params) {
       name: ingnx.config.ingressClassName,
       labels: ingnx.config.commonControllerLabels,
       annotations: if ingnx.config.setDefaultIngress then {
-        'ingressclass.kubernetes.io/is-default-class': 'true'
-       } else {},
+        'ingressclass.kubernetes.io/is-default-class': 'true',
+      } else {},
     },
     spec: {
       controller: ingnx.config.controllerClass,
