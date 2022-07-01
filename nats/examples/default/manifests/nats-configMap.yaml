@@ -8,7 +8,7 @@ data:
     cluster: {
       port: 6222
 
-      routes: [ nats://nats-0.nats.nats.svc:6222 ],
+      routes: [ nats://nats-0.nats.nats.svc:6222 ]
 
       cluster_advertise: $CLUSTER_ADVERTISE
       connect_retries: 30

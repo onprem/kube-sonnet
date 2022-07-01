@@ -95,8 +95,9 @@ spec:
         - mountPath: /var/run/nats
           name: pid
       - args:
+        - -port=7777
         - -connz
-        - -routz
+        - -routez
         - -subz
         - -varz
         - -prefix=nats
@@ -107,7 +108,7 @@ spec:
         imagePullPolicy: IfNotPresent
         name: metrics
         ports:
-        - containerPort: 7222
+        - containerPort: 7777
           name: metrics
       serviceAccountName: nats
       shareProcessNamespace: true

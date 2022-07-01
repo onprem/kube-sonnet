@@ -18,7 +18,7 @@ spec:
   - name: leafnodes
     port: 7422
   - name: metrics
-    port: 7222
+    port: 7777
   - name: monitor
     port: 8222
   selector:

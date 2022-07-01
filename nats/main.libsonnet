@@ -15,7 +15,7 @@ local defaults = {
     cluster: 6222,
     monitor: 8222,
     leafnodes: 7422,
-    metrics: 7222,
+    metrics: 7777,
   },
   resources: {
     requests: {
@@ -76,7 +76,7 @@ function(params) {
         cluster: {
           port: %(cluster_port)d
 
-          routes: [ %(routes)s ],
+          routes: [ %(routes)s ]
 
           cluster_advertise: $CLUSTER_ADVERTISE
           connect_retries: 30
@@ -89,7 +89,7 @@ function(params) {
         http_port: nats.config.ports.monitor,
         cluster_port: nats.config.ports.cluster,
         leafnodes_port: nats.config.ports.leafnodes,
-        routes: std.join(' ', [
+        routes: std.join(', ', [
           'nats://%(name)s-%(replica)d.%(name)s.%(namespace)s.svc:%(port)d' % {
             name: nats.config.name,
             replica: x,
@@ -227,8 +227,9 @@ function(params) {
               name: 'metrics',
               image: nats.config.images.exporter,
               args: [
+                '-port=%d' % nats.config.ports.metrics,
                 '-connz',
-                '-routz',
+                '-routez',
                 '-subz',
                 '-varz',
                 '-prefix=nats',
