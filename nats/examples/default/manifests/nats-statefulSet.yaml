@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: message-queue
+    app.kubernetes.io/instance: nats
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.8.4
+  name: nats
+  namespace: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: message-queue
+      app.kubernetes.io/instance: nats
+      app.kubernetes.io/name: nats
+  serviceName: nats
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: message-queue
+        app.kubernetes.io/instance: nats
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/version: 2.8.4
+    spec:
+      containers:
+      - command:
+        - nats-server
+        - --config
+        - /etc/nats-config/nats.conf
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_ADVERTISE
+          value: $(POD_NAME).nats.$(POD_NAMESPACE).svc
+        image: nats:2.8.4-alpine
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /nats-server -sl=ldm=/var/run/nats/nats.pid && /bin/sleep 60
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        name: nats
+        ports:
+        - containerPort: 4222
+          name: client
+        - containerPort: 6222
+          name: cluster
+        - containerPort: 7422
+          name: leafnodes
+        - containerPort: 8222
+          name: monitor
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 90Mi
+        volumeMounts:
+        - mountPath: /etc/nats-config
+          name: config-volume
+        - mountPath: /var/run/nats
+          name: pid
+      - command:
+        - nats-server-config-reloader
+        - -pid
+        - /var/run/nats/nats.pid
+        - -config
+        - /etc/nats-config/nats.conf
+        image: natsio/nats-server-config-reloader:0.7.0
+        imagePullPolicy: IfNotPresent
+        name: reloader
+        volumeMounts:
+        - mountPath: /etc/nats-config
+          name: config-volume
+        - mountPath: /var/run/nats
+          name: pid
+      - args:
+        - -connz
+        - -routz
+        - -subz
+        - -varz
+        - -prefix=nats
+        - -use_internal_server_id
+        - -DV
+        - http://localhost:8222/
+        image: natsio/prometheus-nats-exporter:0.9.3
+        imagePullPolicy: IfNotPresent
+        name: metrics
+        ports:
+        - containerPort: 7222
+          name: metrics
+      serviceAccountName: nats
+      shareProcessNamespace: true
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - configMap:
+          name: nats
+        name: config-volume
+      - emptyDir: {}
+        name: pid
