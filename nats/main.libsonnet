@@ -74,6 +74,7 @@ function(params) {
         http: %(http_port)d
 
         cluster: {
+          name: %(name)s
           port: %(cluster_port)d
 
           routes: [ %(routes)s ]
@@ -86,6 +87,7 @@ function(params) {
           port: %(leafnodes_port)d
         }
       ||| % {
+        name: nats.config.name,
         http_port: nats.config.ports.monitor,
         cluster_port: nats.config.ports.cluster,
         leafnodes_port: nats.config.ports.leafnodes,

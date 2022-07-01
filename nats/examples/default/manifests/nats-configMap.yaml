@@ -6,6 +6,7 @@ data:
     http: 8222
 
     cluster: {
+      name: nats
       port: 6222
 
       routes: [ nats://nats-0.nats.nats.svc:6222 ]
