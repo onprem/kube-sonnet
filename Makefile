@@ -10,21 +10,17 @@ JSONNET_SRC = $(shell find . -type f -not -path './*vendor/*' \( -name '*.libson
 
 
 .PHONY: examples
-examples: ingress-nginx-examples
-	$(MAKE) clean
-
-
-.PHONY: ingress-nginx-examples
-ingress-nginx-examples: $(wildcard ingress-nginx/*)
-	@echo ">>>>> Generating examples for ingress-nginx"
-	@for d in $(shell ls -d ingress-nginx/examples/*/); do \
-		rm -r $${d}/manifests/*; \
+examples: $(wildcard ingress-nginx/*) $(wildcard nats/*)
+	@echo ">>>>> Generating example manifests"
+	@for d in $(shell ls -d {ingress-nginx,nats}/examples/*/); do \
+		rm -r $${d}/manifests/* || true; \
 		$(JSONNET) -J vendor -m $${d}/manifests $${d}/main.jsonnet | $(XARGS) -I{} sh -c 'cat {} | $(GOJSONTOYAML) > {}.yaml' -- {}; \
 	done
+	$(MAKE) clean
 
 
 .PHONY: clean
 clean:
-	@for d in $(shell ls -d ingress-nginx/examples/*/); do \
+	@for d in $(shell ls -d {ingress-nginx,nats}/examples/*/); do \
 		find $${d}/manifests -type f ! -name '*.yaml' -delete; \
 	done
