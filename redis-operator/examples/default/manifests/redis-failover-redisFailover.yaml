@@ -1,0 +1,43 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  labels:
+    app.kubernetes.io/component: kv-store
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.0.2
+  name: redis
+  namespace: redis
+spec:
+  redis:
+    customConfig: null
+    exporter:
+      args:
+      - --web.listen-address
+      - 0.0.0.0:9121
+      - --log-format
+      - json
+      enabled: true
+      image: quay.io/oliver006/redis_exporter:v1.43.0-alpine
+    image: redis:7.0.2-alpine
+    imagePullPolicy: IfNotPresent
+    replicas: 3
+    resources:
+      limits:
+        cpu: 400m
+        memory: 500Mi
+      requests:
+        cpu: 100m
+        memory: 100Mi
+  sentinel:
+    customConfig: null
+    image: redis:7.0.2-alpine
+    imagePullPolicy: IfNotPresent
+    replicas: 3
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+      requests:
+        cpu: 50m
+        memory: 50Mi
