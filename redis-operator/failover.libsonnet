@@ -18,6 +18,7 @@ local defaults = {
   },
   ports: {
     metrics: 9121,
+    redis: 6379,
   },
   resources: {
     redis: {
@@ -48,7 +49,6 @@ local defaults = {
     'app.kubernetes.io/name': 'redis',
     'app.kubernetes.io/instance': defaults.name,
     'app.kubernetes.io/version': defaults.version,
-    'app.kubernetes.io/component': 'kv-store',
   },
 
   podLabelSelector:: {
@@ -76,6 +76,26 @@ function(params) {
       name: rf.config.name,
       namespace: rf.config.namespace,
       labels: rf.config.commonLabels,
+    },
+  },
+
+  service: {
+    apiVersion: 'v1',
+    kind: 'Service',
+    metadata: {
+      name: rf.config.name,
+      namespace: rf.config.namespace,
+      labels: rf.config.commonLabels,
+    },
+    spec: {
+      selector: rf.config.podLabelSelector,
+      ports: [
+        {
+          name: name,
+          port: rf.config.ports[name],
+        }
+        for name in std.objectFields(rf.config.ports)
+      ],
     },
   },
 

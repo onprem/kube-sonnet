@@ -2,7 +2,6 @@ apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
 metadata:
   labels:
-    app.kubernetes.io/component: kv-store
     app.kubernetes.io/instance: redis
     app.kubernetes.io/name: redis
     app.kubernetes.io/version: 7.0.2
