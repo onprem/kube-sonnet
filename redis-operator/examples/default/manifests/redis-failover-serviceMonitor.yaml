@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  endpoints:
+  - port: 9121
+  namespaceSelector:
+    matchNames:
+    - redis
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kv-store
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
