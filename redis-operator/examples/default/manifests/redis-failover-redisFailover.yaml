@@ -29,6 +29,7 @@ spec:
       requests:
         cpu: 100m
         memory: 100Mi
+    serviceAccountName: redis
   sentinel:
     customConfig: null
     image: redis:7.0.2-alpine
@@ -41,3 +42,4 @@ spec:
       requests:
         cpu: 50m
         memory: 50Mi
+    serviceAccountName: redis

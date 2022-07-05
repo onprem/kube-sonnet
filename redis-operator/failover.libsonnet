@@ -42,6 +42,7 @@ local defaults = {
     },
   },
   serviceMonitor: false,
+  redisExporter: false,
 
   commonLabels:: {
     'app.kubernetes.io/name': 'redis',
@@ -88,6 +89,7 @@ function(params) {
     },
     spec: {
       sentinel: {
+        serviceAccountName: rf.serviceAccount.metadata.name,
         replicas: rf.config.replicas.sentinel,
         image: rf.config.images.redis,
         imagePullPolicy: rf.config.imagePullPolicy,
@@ -96,6 +98,7 @@ function(params) {
         resources: if rf.config.resources.sentinel != {} then rf.config.resources.sentinel else {},
       },
       redis: {
+        serviceAccountName: rf.serviceAccount.metadata.name,
         replicas: rf.config.replicas.redis,
         image: rf.config.images.redis,
         imagePullPolicy: rf.config.imagePullPolicy,
@@ -103,7 +106,7 @@ function(params) {
           then rf.config.customConfig.redis,
         resources: if rf.config.resources.redis != {} then rf.config.resources.redis else {},
         exporter: {
-          enabled: rf.config.serviceMonitor,
+          enabled: rf.config.serviceMonitor || rf.config.redisExporter,
           image: rf.config.images.redisExporter,
           args: [
             '--web.listen-address',
