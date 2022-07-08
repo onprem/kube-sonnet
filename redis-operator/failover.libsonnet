@@ -48,6 +48,7 @@ local defaults = {
   commonLabels:: {
     'app.kubernetes.io/name': 'redis',
     'app.kubernetes.io/instance': defaults.name,
+    'app.kubernetes.io/component': 'redis',
     'app.kubernetes.io/version': defaults.version,
   },
 

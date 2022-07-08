@@ -11,5 +11,6 @@ spec:
     - redis
   selector:
     matchLabels:
+      app.kubernetes.io/component: redis
       app.kubernetes.io/instance: redis
       app.kubernetes.io/name: redis
