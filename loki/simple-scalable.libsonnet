@@ -231,12 +231,12 @@ function(params) {
       replicas: loki.config.replicas.read,
       selector: { matchLabels: loki.config.readPodLabelSelector },
       serviceName: loki.readService.metadata.name,
+      podManagementPolicy: 'Parallel',
       template: {
         metadata: { labels: loki.config.commonReadLabels },
         spec: {
           serviceAccountName: loki.readServiceAccount.metadata.name,
           terminationGracePeriodSeconds: 4800,
-          podManagementPolicy: 'Parallel',
           containers: [
             {
               name: 'read',
@@ -346,12 +346,12 @@ function(params) {
       replicas: loki.config.replicas.write,
       selector: { matchLabels: loki.config.writePodLabelSelector },
       serviceName: loki.writeService.metadata.name,
+      podManagementPolicy: 'Parallel',
       template: {
         metadata: { labels: loki.config.commonWriteLabels },
         spec: {
           serviceAccountName: loki.writeServiceAccount.metadata.name,
           terminationGracePeriodSeconds: 4800,
-          podManagementPolicy: 'Parallel',
           containers: [
             {
               name: 'read',

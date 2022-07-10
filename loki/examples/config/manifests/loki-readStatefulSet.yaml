@@ -12,6 +12,7 @@ metadata:
   name: loki-read
   namespace: logging
 spec:
+  podManagementPolicy: Parallel
   replicas: 1
   selector:
     matchLabels:
@@ -59,7 +60,6 @@ spec:
           name: data
         - mountPath: /etc/loki
           name: config
-      podManagementPolicy: Parallel
       securityContext:
         fsGroup: 10001
       serviceAccountName: loki-read
