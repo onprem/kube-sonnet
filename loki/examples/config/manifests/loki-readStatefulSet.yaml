@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    config_hash: 369b6025ff03e94435b9de0205f826f5
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: loki-read
+    app.kubernetes.io/part-of: loki
+    app.kubernetes.io/version: 2.7.0
+  name: loki-read
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: logging
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/name: loki-read
+      app.kubernetes.io/part-of: loki
+  serviceName: loki-read
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: logging
+        app.kubernetes.io/instance: loki
+        app.kubernetes.io/name: loki-read
+        app.kubernetes.io/part-of: loki
+        app.kubernetes.io/version: 2.7.0
+    spec:
+      containers:
+      - args:
+        - -target=read
+        - -config.path=/etc/loki/config.yaml
+        image: grafana/loki:2.7.0
+        imagePullPolicy: IfNotPresent
+        name: read
+        ports:
+        - containerPort: 9095
+          name: grpc
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 80
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /etc/loki
+          name: config
+      podManagementPolicy: Parallel
+      securityContext:
+        fsGroup: 10001
+      serviceAccountName: loki-read
+      terminationGracePeriodSeconds: 4800
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: loki-read
+      - configMap:
+          name: loki
+        name: config

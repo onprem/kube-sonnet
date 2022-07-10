@@ -1,0 +1,42 @@
+apiVersion: v1
+data:
+  config.yaml: |-
+    auth_enabled: false
+    common:
+      path_prefix: "/loki"
+      replication_factor: 1
+      storage:
+        s3:
+          s3: "inmemory:///"
+          s3forcepathstyle: true
+    limits_config:
+      enforce_metric_name: false
+      ingestion_burst_size_mb: 100
+      ingestion_rate_mb: 75
+      max_global_streams_per_user: 60000
+      reject_old_samples_max_age: "168h"
+    memberlist_config:
+      join_members:
+        - "loki.logging.svc.cluster.local"
+    schema_config:
+      configs:
+        - from: "2021-09-12"
+          index:
+            period: "24h"
+            prefix: "logging_index_"
+          object_store: "s3"
+          schema: "v11"
+          store: "boltdb-shipper"
+    server:
+      grpc_listen_port: 9095
+      http_listen_port: 80
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/part-of: loki
+    app.kubernetes.io/version: 2.7.0
+  name: loki
+  namespace: logging

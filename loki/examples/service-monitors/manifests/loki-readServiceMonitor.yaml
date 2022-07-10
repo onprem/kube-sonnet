@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: loki-read
+    app.kubernetes.io/part-of: loki
+    app.kubernetes.io/version: 2.7.0
+  name: loki-read
+  namespace: logging
+spec:
+  endpoints:
+  - port: http
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: logging
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/name: loki-read
+      app.kubernetes.io/part-of: loki

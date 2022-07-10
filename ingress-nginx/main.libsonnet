@@ -12,6 +12,7 @@ local defaults = {
   serviceAnnotations: {},
   setDefaultIngress: false,
   tcpServices: {},
+  extraArgs: [],
   namespace: error 'must provide namespace',
   version: error 'must provide version',
   images: {
@@ -428,7 +429,7 @@ function(params) {
                 '--validating-webhook-certificate=/usr/local/certificates/cert',
                 '--validating-webhook-key=/usr/local/certificates/key',
                 '--tcp-services-configmap=$(POD_NAMESPACE)/%s' % ingnx.tcpServicesConfigMap.metadata.name,
-              ],
+              ] + ingnx.config.extraArgs,
               env: [
                 {
                   name: 'POD_NAME',
