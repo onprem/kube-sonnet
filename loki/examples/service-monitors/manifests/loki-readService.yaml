@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: loki-read
+    app.kubernetes.io/part-of: loki
+    app.kubernetes.io/version: 2.7.0
+  name: loki-read
+  namespace: logging
+spec:
+  ports:
+  - name: grpc
+    port: 9095
+    protocol: TCP
+    targetPort: grpc
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/name: loki-read
+    app.kubernetes.io/part-of: loki
+  type: ClusterIP
