@@ -26,6 +26,10 @@ local defaults = {
     read: '10Gi',
     write: '10Gi',
   },
+  extraArgs: {
+    read: [],
+    write: [],
+  },
   serviceMonitor: false,
 
   commonLabels:: {
@@ -243,8 +247,8 @@ function(params) {
               image: loki.config.image,
               args: [
                 '-target=read',
-                '-config.path=/etc/loki/config.yaml'
-              ],
+                '-config.file=/etc/loki/config.yaml'
+              ] + loki.config.extraArgs.read,
               imagePullPolicy: loki.config.imagePullPolicy,
               readinessProbe: {
                 initialDelaySeconds: 15,
@@ -354,12 +358,12 @@ function(params) {
           terminationGracePeriodSeconds: 4800,
           containers: [
             {
-              name: 'read',
+              name: 'write',
               image: loki.config.image,
               args: [
                 '-target=write',
-                '-config.path=/etc/loki/config.yaml'
-              ],
+                '-config.file=/etc/loki/config.yaml'
+              ] + loki.config.extraArgs.write,
               imagePullPolicy: loki.config.imagePullPolicy,
               readinessProbe: {
                 initialDelaySeconds: 15,

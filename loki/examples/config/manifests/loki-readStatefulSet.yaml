@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/instance: loki
     app.kubernetes.io/name: loki-read
     app.kubernetes.io/part-of: loki
-    app.kubernetes.io/version: 2.7.0
+    app.kubernetes.io/version: 2.6.0
   name: loki-read
   namespace: logging
 spec:
@@ -28,13 +28,13 @@ spec:
         app.kubernetes.io/instance: loki
         app.kubernetes.io/name: loki-read
         app.kubernetes.io/part-of: loki
-        app.kubernetes.io/version: 2.7.0
+        app.kubernetes.io/version: 2.6.0
     spec:
       containers:
       - args:
         - -target=read
-        - -config.path=/etc/loki/config.yaml
-        image: grafana/loki:2.7.0
+        - -config.file=/etc/loki/config.yaml
+        image: grafana/loki:2.6.0
         imagePullPolicy: IfNotPresent
         name: read
         ports:
