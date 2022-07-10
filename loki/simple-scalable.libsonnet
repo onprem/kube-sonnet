@@ -12,7 +12,7 @@ local defaults = {
     write: error 'must provide write replicas',
   },
   ports: {
-    http: 80,
+    http: 3100,
     grpc: 9095,
   },
   config: {},
@@ -102,7 +102,7 @@ function(params) {
       http_listen_port: loki.config.ports.http,
       grpc_listen_port: loki.config.ports.grpc,
     },
-    memberlist_config: {
+    memberlist: {
       join_members: [
         '%s.%s.svc.cluster.local' % [loki.service.metadata.name, loki.config.namespace],
       ],

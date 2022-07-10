@@ -17,7 +17,7 @@ spec:
     protocol: TCP
     targetPort: grpc
   - name: http
-    port: 80
+    port: 3100
     protocol: TCP
     targetPort: http
   publishNotReadyAddresses: true

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   annotations:
-    config_hash: 369b6025ff03e94435b9de0205f826f5
+    config_hash: aa7908898b730f7636ccf047f7441389
   labels:
     app.kubernetes.io/component: logging
     app.kubernetes.io/instance: loki
@@ -39,12 +39,12 @@ spec:
         ports:
         - containerPort: 9095
           name: grpc
-        - containerPort: 80
+        - containerPort: 3100
           name: http
         readinessProbe:
           httpGet:
             path: /ready
-            port: 80
+            port: 3100
           initialDelaySeconds: 15
           timeoutSeconds: 1
         resources:

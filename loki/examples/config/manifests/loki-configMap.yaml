@@ -15,7 +15,7 @@ data:
       ingestion_rate_mb: 75
       max_global_streams_per_user: 60000
       reject_old_samples_max_age: "168h"
-    memberlist_config:
+    memberlist:
       join_members:
         - "loki.logging.svc.cluster.local"
     schema_config:
@@ -29,7 +29,7 @@ data:
           store: "boltdb-shipper"
     server:
       grpc_listen_port: 9095
-      http_listen_port: 80
+      http_listen_port: 3100
       log_level: "debug"
 kind: ConfigMap
 metadata:
