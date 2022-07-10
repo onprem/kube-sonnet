@@ -234,10 +234,11 @@ function(params) {
       selector: { matchLabels: loki.config.readPodLabelSelector },
       serviceName: loki.readService.metadata.name,
       podManagementPolicy: 'Parallel',
-      persistentVolumeClaimRetentionPolicy: {
-        whenDeleted: 'Delete',
-        whenScaled: 'Delete',
-      },
+      // Disabled as it only works with K8s v1.23 onwards.
+      // persistentVolumeClaimRetentionPolicy: {
+      //   whenDeleted: 'Delete',
+      //   whenScaled: 'Delete',
+      // },
       template: {
         metadata: {
           labels: loki.config.commonReadLabels,

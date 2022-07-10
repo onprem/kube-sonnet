@@ -12,9 +12,6 @@ metadata:
   name: loki-read
   namespace: logging
 spec:
-  persistentVolumeClaimRetentionPolicy:
-    whenDeleted: Delete
-    whenScaled: Delete
   podManagementPolicy: Parallel
   replicas: 1
   selector:
