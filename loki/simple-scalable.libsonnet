@@ -1,8 +1,8 @@
 local defaults = {
   local defaults = self,
   name: 'loki',
-  readName: defaults.name + "-read",
-  writeName: defaults.name + "-write",
+  readName: defaults.name + '-read',
+  writeName: defaults.name + '-write',
   namespace: error 'must provide namespace',
   version: error 'must provide version',
   image: error 'must provide loki image',
@@ -14,6 +14,7 @@ local defaults = {
   ports: {
     http: 3100,
     grpc: 9095,
+    memberlist: 7946,
   },
   config: {},
   resources: {
@@ -32,6 +33,21 @@ local defaults = {
   },
   serviceMonitor: false,
 
+  podSecurityContext: {
+    fsGroup: 10001,
+    runAsGroup: 10001,
+    runAsNonRoot: true,
+    runAsUser: 10001,
+  },
+
+  containerSecurityContext: {
+    readOnlyRootFilesystem: true,
+    capabilities: {
+      drop: ['ALL'],
+    },
+    allowPrivilegeEscalation: false,
+  },
+
   commonLabels:: {
     'app.kubernetes.io/name': 'loki',
     'app.kubernetes.io/instance': defaults.name,
@@ -40,11 +56,11 @@ local defaults = {
     'app.kubernetes.io/part-of': 'loki',
   },
 
-  commonReadLabels:: defaults.commonLabels + {
+  commonReadLabels:: defaults.commonLabels {
     'app.kubernetes.io/name': defaults.readName,
   },
 
-  commonWriteLabels:: defaults.commonLabels + {
+  commonWriteLabels:: defaults.commonLabels {
     'app.kubernetes.io/name': defaults.writeName,
   },
 
@@ -108,11 +124,12 @@ function(params) {
     },
     memberlist: {
       join_members: [
-        '%s.%s.svc.cluster.local' % [loki.service.metadata.name, loki.config.namespace],
+        '%s.%s.svc.cluster.local:%d' % [loki.memberlistService.metadata.name, loki.config.namespace, loki.config.ports.memberlist],
       ],
+      bind_port: loki.config.ports.memberlist,
     },
     common: {
-      path_prefix: '/loki',
+      path_prefix: '/data/loki',
       replication_factor: 1,
       storage: {
         s3: {
@@ -123,7 +140,7 @@ function(params) {
     },
     limits_config: {
       enforce_metric_name: false,
-      reject_old_samples_max_age: '168h', // 1 week.
+      reject_old_samples_max_age: '168h',  // 1 week.
       max_global_streams_per_user: 60000,
       ingestion_rate_mb: 75,
       ingestion_burst_size_mb: 100,
@@ -133,7 +150,7 @@ function(params) {
         from: '2021-09-12',
         store: 'boltdb-shipper',
         object_store: 's3',
-        schema: 'v11',
+        schema: 'v12',
         index: {
           prefix: '%s_index_' % loki.config.namespace,
           period: '24h',
@@ -155,11 +172,11 @@ function(params) {
     },
   },
 
-  service: {
+  memberlistService: {
     apiVersion: 'v1',
     kind: 'Service',
     metadata: {
-      name: loki.config.name,
+      name: loki.config.name + '-memberlist',
       namespace: loki.config.namespace,
       labels: loki.config.commonLabels,
     },
@@ -169,31 +186,12 @@ function(params) {
       selector: loki.config.podLabelSelector,
       ports: [
         {
-          name: name,
-          port: loki.config.ports[name],
+          name: 'memberlist',
+          port: loki.config.ports.memberlist,
           protocol: 'TCP',
-          targetPort: name,
-        }
-        for name in std.objectFields(loki.config.ports)
-      ],
-    },
-  },
-
-  readPersistentVolumeClaim: {
-    apiVersion: 'v1',
-    kind: 'PersistentVolumeClaim',
-    metadata: {
-      name: loki.config.readName,
-      namespace: loki.config.namespace,
-      labels: loki.config.commonReadLabels,
-    },
-    spec: {
-      accessModes: ['ReadWriteOnce'],
-      resources: {
-        requests: {
-          storage: '10Gi'
+          targetPort: 'memberlist',
         },
-      },
+      ],
     },
   },
 
@@ -236,8 +234,15 @@ function(params) {
       selector: { matchLabels: loki.config.readPodLabelSelector },
       serviceName: loki.readService.metadata.name,
       podManagementPolicy: 'Parallel',
+      persistentVolumeClaimRetentionPolicy: {
+        whenDeleted: 'Delete',
+        whenScaled: 'Delete',
+      },
       template: {
-        metadata: { labels: loki.config.commonReadLabels },
+        metadata: {
+          labels: loki.config.commonReadLabels,
+          annotations: { config_hash: std.md5(std.toString(lokiConfig)) },
+        },
         spec: {
           serviceAccountName: loki.readServiceAccount.metadata.name,
           terminationGracePeriodSeconds: 4800,
@@ -247,7 +252,7 @@ function(params) {
               image: loki.config.image,
               args: [
                 '-target=read',
-                '-config.file=/etc/loki/config.yaml'
+                '-config.file=/etc/loki/config.yaml',
               ] + loki.config.extraArgs.read,
               imagePullPolicy: loki.config.imagePullPolicy,
               readinessProbe: {
@@ -263,9 +268,10 @@ function(params) {
                 for name in std.objectFields(loki.config.ports)
               ],
               resources: loki.config.resources,
+              securityContext: loki.config.containerSecurityContext,
               volumeMounts: [
                 {
-                  name: 'data',
+                  name: loki.config.readName,
                   mountPath: '/data',
                 },
                 {
@@ -275,15 +281,8 @@ function(params) {
               ],
             },
           ],
-          securityContext: {
-            // 10001 is the group ID assigned to Loki in the Dockerfile.
-            fsGroup: 10001,
-          },
+          securityContext: loki.config.podSecurityContext,
           volumes: [
-            {
-              name: 'data',
-              persistentVolumeClaim: { claimName: loki.readPersistentVolumeClaim.metadata.name },
-            },
             {
               name: 'config',
               configMap: { name: loki.configMap.metadata.name },
@@ -291,24 +290,21 @@ function(params) {
           ],
         },
       },
-    },
-  },
-
-  writePersistentVolumeClaim: {
-    apiVersion: 'v1',
-    kind: 'PersistentVolumeClaim',
-    metadata: {
-      name: loki.config.writeName,
-      namespace: loki.config.namespace,
-      labels: loki.config.commonWriteLabels,
-    },
-    spec: {
-      accessModes: ['ReadWriteOnce'],
-      resources: {
-        requests: {
-          storage: loki.config.storage.write,
+      volumeClaimTemplates: [{
+        metadata: {
+          name: loki.config.readName,
+          namespace: loki.config.namespace,
+          labels: loki.config.commonReadLabels,
         },
-      },
+        spec: {
+          accessModes: ['ReadWriteOnce'],
+          resources: {
+            requests: {
+              storage: loki.config.storage.read,
+            },
+          },
+        },
+      }],
     },
   },
 
@@ -352,7 +348,10 @@ function(params) {
       serviceName: loki.writeService.metadata.name,
       podManagementPolicy: 'Parallel',
       template: {
-        metadata: { labels: loki.config.commonWriteLabels },
+        metadata: {
+          labels: loki.config.commonWriteLabels,
+          annotations: { config_hash: std.md5(std.toString(lokiConfig)) },
+        },
         spec: {
           serviceAccountName: loki.writeServiceAccount.metadata.name,
           terminationGracePeriodSeconds: 4800,
@@ -362,7 +361,7 @@ function(params) {
               image: loki.config.image,
               args: [
                 '-target=write',
-                '-config.file=/etc/loki/config.yaml'
+                '-config.file=/etc/loki/config.yaml',
               ] + loki.config.extraArgs.write,
               imagePullPolicy: loki.config.imagePullPolicy,
               readinessProbe: {
@@ -378,9 +377,10 @@ function(params) {
                 for name in std.objectFields(loki.config.ports)
               ],
               resources: loki.config.resources,
+              securityContext: loki.config.containerSecurityContext,
               volumeMounts: [
                 {
-                  name: 'data',
+                  name: loki.config.writeName,
                   mountPath: '/data',
                 },
                 {
@@ -390,15 +390,8 @@ function(params) {
               ],
             },
           ],
-          securityContext: {
-            // 10001 is the group ID assigned to Loki in the Dockerfile.
-            fsGroup: 10001,
-          },
+          securityContext: loki.config.podSecurityContext,
           volumes: [
-            {
-              name: 'data',
-              persistentVolumeClaim: { claimName: loki.readPersistentVolumeClaim.metadata.name },
-            },
             {
               name: 'config',
               configMap: { name: loki.configMap.metadata.name },
@@ -406,6 +399,21 @@ function(params) {
           ],
         },
       },
+      volumeClaimTemplates: [{
+        metadata: {
+          name: loki.config.writeName,
+          namespace: loki.config.namespace,
+          labels: loki.config.commonWriteLabels,
+        },
+        spec: {
+          accessModes: ['ReadWriteOnce'],
+          resources: {
+            requests: {
+              storage: loki.config.storage.write,
+            },
+          },
+        },
+      }],
     },
   },
 

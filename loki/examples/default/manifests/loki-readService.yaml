@@ -19,6 +19,10 @@ spec:
     port: 3100
     protocol: TCP
     targetPort: http
+  - name: memberlist
+    port: 7946
+    protocol: TCP
+    targetPort: memberlist
   selector:
     app.kubernetes.io/component: logging
     app.kubernetes.io/instance: loki

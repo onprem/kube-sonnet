@@ -7,19 +7,15 @@ metadata:
     app.kubernetes.io/name: loki
     app.kubernetes.io/part-of: loki
     app.kubernetes.io/version: 2.6.0
-  name: loki
+  name: loki-memberlist
   namespace: logging
 spec:
   clusterIP: None
   ports:
-  - name: grpc
-    port: 9095
+  - name: memberlist
+    port: 7946
     protocol: TCP
-    targetPort: grpc
-  - name: http
-    port: 3100
-    protocol: TCP
-    targetPort: http
+    targetPort: memberlist
   publishNotReadyAddresses: true
   selector:
     app.kubernetes.io/component: logging

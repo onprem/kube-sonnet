@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   annotations:
-    config_hash: aa7908898b730f7636ccf047f7441389
+    config_hash: 61b32cd7244c7d439a6691eb94ce33b2
   labels:
     app.kubernetes.io/component: logging
     app.kubernetes.io/instance: loki
@@ -23,6 +23,8 @@ spec:
   serviceName: loki-write
   template:
     metadata:
+      annotations:
+        config_hash: 61b32cd7244c7d439a6691eb94ce33b2
       labels:
         app.kubernetes.io/component: logging
         app.kubernetes.io/instance: loki
@@ -42,6 +44,8 @@ spec:
           name: grpc
         - containerPort: 3100
           name: http
+        - containerPort: 7946
+          name: memberlist
         readinessProbe:
           httpGet:
             path: /ready
@@ -55,19 +59,41 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         volumeMounts:
         - mountPath: /data
-          name: data
+          name: loki-write
         - mountPath: /etc/loki
           name: config
       securityContext:
         fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
       serviceAccountName: loki-write
       terminationGracePeriodSeconds: 4800
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: loki-read
       - configMap:
           name: loki
         name: config
+  volumeClaimTemplates:
+  - metadata:
+      labels:
+        app.kubernetes.io/component: logging
+        app.kubernetes.io/instance: loki
+        app.kubernetes.io/name: loki-write
+        app.kubernetes.io/part-of: loki
+        app.kubernetes.io/version: 2.6.0
+      name: loki-write
+      namespace: logging
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi

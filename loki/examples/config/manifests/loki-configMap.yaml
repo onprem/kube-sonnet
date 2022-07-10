@@ -3,7 +3,7 @@ data:
   config.yaml: |-
     auth_enabled: false
     common:
-      path_prefix: "/loki"
+      path_prefix: "/data/loki"
       replication_factor: 1
       storage:
         s3:
@@ -16,8 +16,9 @@ data:
       max_global_streams_per_user: 60000
       reject_old_samples_max_age: "168h"
     memberlist:
+      bind_port: 7946
       join_members:
-        - "loki.logging.svc.cluster.local"
+        - "loki-memberlist.logging.svc.cluster.local:7946"
     schema_config:
       configs:
         - from: "2021-09-12"
@@ -25,7 +26,7 @@ data:
             period: "24h"
             prefix: "logging_index_"
           object_store: "s3"
-          schema: "v11"
+          schema: "v12"
           store: "boltdb-shipper"
     server:
       grpc_listen_port: 9095

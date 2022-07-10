@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   annotations:
-    config_hash: aa7908898b730f7636ccf047f7441389
+    config_hash: 61b32cd7244c7d439a6691eb94ce33b2
   labels:
     app.kubernetes.io/component: logging
     app.kubernetes.io/instance: loki
@@ -12,6 +12,9 @@ metadata:
   name: loki-read
   namespace: logging
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
   podManagementPolicy: Parallel
   replicas: 1
   selector:
@@ -23,6 +26,8 @@ spec:
   serviceName: loki-read
   template:
     metadata:
+      annotations:
+        config_hash: 61b32cd7244c7d439a6691eb94ce33b2
       labels:
         app.kubernetes.io/component: logging
         app.kubernetes.io/instance: loki
@@ -42,6 +47,8 @@ spec:
           name: grpc
         - containerPort: 3100
           name: http
+        - containerPort: 7946
+          name: memberlist
         readinessProbe:
           httpGet:
             path: /ready
@@ -55,19 +62,41 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         volumeMounts:
         - mountPath: /data
-          name: data
+          name: loki-read
         - mountPath: /etc/loki
           name: config
       securityContext:
         fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
       serviceAccountName: loki-read
       terminationGracePeriodSeconds: 4800
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: loki-read
       - configMap:
           name: loki
         name: config
+  volumeClaimTemplates:
+  - metadata:
+      labels:
+        app.kubernetes.io/component: logging
+        app.kubernetes.io/instance: loki
+        app.kubernetes.io/name: loki-read
+        app.kubernetes.io/part-of: loki
+        app.kubernetes.io/version: 2.6.0
+      name: loki-read
+      namespace: logging
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
